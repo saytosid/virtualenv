@@ -14,16 +14,17 @@ def run_via_cli(args):
     :param args: the command line arguments
     :return: the creator used
     """
+    return _run_via_cli(args)
+
+
+def _run_via_cli(args):
     base_opts = _parse_base_opts(args)
     creator_class, interpreter = _get_creator(base_opts)
     options = _parse_core_opts(args, base_opts, creator_class, interpreter)
     creator = creator_class(options, interpreter)
-
     _run_create(creator)
-
     logging.debug(_DEBUG_MARKER)
     logging.debug("%s", Debug(creator))
-
     return creator
 
 

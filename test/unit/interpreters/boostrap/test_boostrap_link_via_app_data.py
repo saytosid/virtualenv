@@ -57,7 +57,9 @@ def test_base_bootstrap_link_via_app_data(tmp_path):
 
     assert not subprocess.check_call(remove_cmd + ["pip"])
     # pip is greedy here, removing all packages removes the site-package too
-    assert not site_package.exists()
+    if site_package.exists():
+        post_run = list(site_package.iterdir())
+        assert not post_run, "\n".join(str(i) for i in post_run)
 
     if sys.version_info[0:2] == (3, 4) and "PIP_REQ_TRACKER" in os.environ:
         os.environ.pop("PIP_REQ_TRACKER")

@@ -1,7 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import os
-import sys
+from contextlib import contextmanager
 
 import coverage
 import pytest
@@ -75,35 +75,55 @@ COV_FOLDERS = (
 
 
 @pytest.fixture(autouse=True)
-def enable_coverage_in_virtual_env(monkeypatch):
+def enable_coverage_in_virtual_env():
     """
     Enable coverage report collection on the created virtual environments by injecting the coverage project
     """
     if COVERAGE_RUN:
+        # we inject right after creation, we cannot collect coverage on site.py - used for helper scripts, such as debug
         from virtualenv import run
 
-        _original_run_create = run._run_create
+        @contextmanager
+        def post_perform(func, callback):
+            _original = getattr(run, func)
 
-        def _our_run(creator):
-            _original_run_create(creator)
-            enable_coverage_on_env(monkeypatch, creator)  # now inject coverage tools
+            def internal(*args, **kwargs):
+                try:
+                    return _original(*args, **kwargs)
+                finally:
+                    callback(*args, **kwargs)  # now inject coverage tools
 
-        try:
-            run._run_create = _our_run
-            yield
-        finally:
-            run._run_create = _original_run_create
+            try:
+                setattr(run, func, internal)
+                yield
+            finally:
+                setattr(run, func, _original)
+
+        cov = EnableCoverage()
+        with post_perform("_run_create", lambda c: cov.__enter__(c)):
+            with post_perform("_run_via_cli", lambda a: cov.__exit__(None, None, None)):
+                yield
     else:
         yield
 
 
-def enable_coverage_on_env(monkeypatch, creator):
-    site_packages = creator.site_packages[0]
-    for folder in COV_FOLDERS:
-        target = site_packages / folder.name
-        if not target.exists():
-            symlink(folder, target)
-    if sys.version_info[0] == 2:
-        # coverage for the injected site.py on Python 2
-        monkeypatch.setenv(str("_VIRTUALENV_INJECTED_SRC"), str(site_packages.parent / "site.py"))
-    (site_packages / "coverage-virtualenv.pth").write_text("import coverage; coverage.process_startup()")
+class EnableCoverage(object):
+    def __init__(self):
+        self.targets = []
+
+    def __enter__(self, creator):
+        site_packages = creator.site_packages[0]
+        for folder in COV_FOLDERS:
+            target = site_packages / folder.name
+            if not target.exists():
+                symlink(folder, target)
+            self.targets.append(target)
+        p_th = site_packages / "coverage-virtualenv.pth"
+        p_th.write_text("import coverage; coverage.process_startup()")
+        self.targets.append(p_th)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for target in self.targets:
+            if target.exists():
+                target.unlink()

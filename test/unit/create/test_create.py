@@ -44,7 +44,8 @@ def test_create_no_seed(python, use_venv, global_access, tmp_path, enable_covera
         cmd.append("--no-venv")
     result = run_via_cli(cmd)
     for site_package in result.site_packages:
-        assert not list(site_package.iterdir())
+        content = list(site_package.iterdir())
+        assert not content, "\n".join(str(i) for i in content)
     assert result.env_name == tmp_path.name
     sys_path = cleanup_sys_path(result.debug["sys"]["path"])
     system_sys_path = cleanup_sys_path(SYSTEM["sys"]["path"])
