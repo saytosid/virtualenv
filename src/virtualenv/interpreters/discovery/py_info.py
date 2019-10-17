@@ -12,6 +12,7 @@ import os
 import platform
 import subprocess
 import sys
+import re
 from collections import OrderedDict, namedtuple
 
 IS_WIN = sys.platform == "win32"
@@ -136,7 +137,7 @@ class PythonInfo(object):
 
     @staticmethod
     def _find_possible_exe_names(exe_base_name):
-        exe_no_suffix = os.path.splitext(exe_base_name)[0]
+        exe_no_suffix = re.match(r"([a-zA-Z]+)([0-9]+)(.*)", exe_base_name).groups()[0]
         name_candidate = OrderedDict()
         for ext in EXTENSIONS:
             for at in range(3, -1, -1):
