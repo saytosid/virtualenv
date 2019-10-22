@@ -13,6 +13,7 @@ from virtualenv.error import ProcessCallFailed
 from virtualenv.info import IS_WIN
 from virtualenv.seed.link_app_data import bootstrap as bootstrap_via_link_app_data
 from virtualenv.util import copy, ensure_dir, run_cmd, symlink
+from virtualenv.interpreters.activation import install_activate
 
 HERE = Path(__file__).absolute().parent
 DEBUG_SCRIPT = HERE / "debug.py"
@@ -64,6 +65,7 @@ class Creator(object):
                 if true_system_site != self.options.system_site:
                     self.options.system_site = true_system_site
                     self.create_configuration()
+        install_activate(self)
 
     def create_using_host(self):
         """
@@ -132,7 +134,7 @@ class Creator(object):
 
     @property
     def bin_name(self):
-        raise NotImplementedError
+        return self.bin_dir.parts[-1]
 
     @property
     def bin_dir(self):
