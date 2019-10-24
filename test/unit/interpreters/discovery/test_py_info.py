@@ -88,3 +88,7 @@ def test_satisfy_not_version(spec):
     parsed_spec = PythonSpec.from_string_spec("{}{}".format(CURRENT.implementation, spec))
     matches = CURRENT.satisfies(parsed_spec, True)
     assert matches is False
+
+
+def test_python_executable_version_number_discovery():
+    assert "python" in PythonInfo._find_possible_exe_names("python3")
